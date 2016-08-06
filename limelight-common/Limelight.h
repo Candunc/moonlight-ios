@@ -12,18 +12,18 @@ extern "C" {
 //#define LC_DEBUG
 
 typedef struct _STREAM_CONFIGURATION {
-	// Dimensions in pixels of the desired video stream
-	int width;
-	int height;
+    // Dimensions in pixels of the desired video stream
+    int width;
+    int height;
 
-	// FPS of the desired video stream
-	int fps;
+    // FPS of the desired video stream
+    int fps;
 
-	// Bitrate of the desired video stream (audio adds another ~1 Mbps)
-	int bitrate;
+    // Bitrate of the desired video stream (audio adds another ~1 Mbps)
+    int bitrate;
 
-	// Max video packet size in bytes (use 1024 if unsure)
-	int packetSize;
+    // Max video packet size in bytes (use 1024 if unsure)
+    int packetSize;
 
     // Set to non-zero value to enable remote (over the Internet)
     // streaming optimizations. If unsure, set to 0.
@@ -32,35 +32,39 @@ typedef struct _STREAM_CONFIGURATION {
     // Specifies the channel configuration of the audio stream.
     // See AUDIO_CONFIGURATION_XXX constants below.
     int audioConfiguration;
+    
+    // Specifies that the client can accept an H.265 video stream
+    // if the server is able to provide one.
+    int supportsHevc;
 
-	// AES encryption data for the remote input stream. This must be
-	// the same as what was passed as rikey and rikeyid 
-	// in /launch and /resume requests.
-	char remoteInputAesKey[16];
-	char remoteInputAesIv[16];
+    // AES encryption data for the remote input stream. This must be
+    // the same as what was passed as rikey and rikeyid
+    // in /launch and /resume requests.
+    char remoteInputAesKey[16];
+    char remoteInputAesIv[16];
 } STREAM_CONFIGURATION, *PSTREAM_CONFIGURATION;
 
 // Use this function to zero the stream configuration when allocated on the stack or heap
 void LiInitializeStreamConfiguration(PSTREAM_CONFIGURATION streamConfig);
 
 typedef struct _LENTRY {
-	// Pointer to the next entry or NULL if this is the last entry
-	struct _LENTRY *next;
+    // Pointer to the next entry or NULL if this is the last entry
+    struct _LENTRY* next;
 
-	// Pointer to data (never NULL)
-	char* data;
+    // Pointer to data (never NULL)
+    char* data;
 
-	// Size of data in bytes (never <= 0)
-	int length;
+    // Size of data in bytes (never <= 0)
+    int length;
 } LENTRY, *PLENTRY;
 
-// A decode unit describes a buffer chain of H264 data from multiple packets
+// A decode unit describes a buffer chain of video data from multiple packets
 typedef struct _DECODE_UNIT {
-	// Length of the entire buffer chain in bytes
-	int fullLength;
+    // Length of the entire buffer chain in bytes
+    int fullLength;
 
-	// Head of the buffer chain (never NULL)
-	PLENTRY bufferList;
+    // Head of the buffer chain (never NULL)
+    PLENTRY bufferList;
 } DECODE_UNIT, *PDECODE_UNIT;
 
 // Specifies that the audio stream should be encoded in stereo (default)
@@ -68,6 +72,14 @@ typedef struct _DECODE_UNIT {
 
 // Specifies that the audio stream should be in 5.1 surround sound if the PC is able
 #define AUDIO_CONFIGURATION_51_SURROUND 1
+
+// Passed to DecoderRendererSetup to indicate that the following video stream will be
+// in H.264 format
+#define VIDEO_FORMAT_H264 1
+
+// Passed to DecoderRendererSetup to indicate that the following video stream will be
+// in H.265 format
+#define VIDEO_FORMAT_H265 2
 
 // If set in the renderer capabilities field, this flag will cause audio/video data to
 // be submitted directly from the receive thread. This should only be specified if the
@@ -80,17 +92,17 @@ typedef struct _DECODE_UNIT {
 #define CAPABILITY_REFERENCE_FRAME_INVALIDATION 0x2
 
 // If set in the video renderer capabilities field, this macro specifies that the renderer
-// supports H264 slicing to increase decoding performance. The parameter specifies the desired
+// supports slicing to increase decoding performance. The parameter specifies the desired
 // number of slices per frame. This capability is only valid on video renderers.
 #define CAPABILITY_SLICES_PER_FRAME(x) (((unsigned char)(x)) << 24)
 
 // This callback is invoked to provide details about the video stream and allow configuration of the decoder
-typedef void(*DecoderRendererSetup)(int width, int height, int redrawRate, void* context, int drFlags);
+typedef void(*DecoderRendererSetup)(int videoFormat, int width, int height, int redrawRate, void* context, int drFlags);
 
 // This callback performs the teardown of the video decoder
 typedef void(*DecoderRendererCleanup)(void);
 
-// This callback provides Annex B formatted H264 elementary stream data to the
+// This callback provides Annex B formatted elementary stream data to the
 // decoder. If the decoder is unable to process the submitted data for some reason,
 // it must return DR_NEED_IDR to generate a keyframe.
 #define DR_OK 0
@@ -98,10 +110,10 @@ typedef void(*DecoderRendererCleanup)(void);
 typedef int(*DecoderRendererSubmitDecodeUnit)(PDECODE_UNIT decodeUnit);
 
 typedef struct _DECODER_RENDERER_CALLBACKS {
-	DecoderRendererSetup setup;
-	DecoderRendererCleanup cleanup;
-	DecoderRendererSubmitDecodeUnit submitDecodeUnit;
-	int capabilities;
+    DecoderRendererSetup setup;
+    DecoderRendererCleanup cleanup;
+    DecoderRendererSubmitDecodeUnit submitDecodeUnit;
+    int capabilities;
 } DECODER_RENDERER_CALLBACKS, *PDECODER_RENDERER_CALLBACKS;
 
 // Use this function to zero the video callbacks when allocated on the stack or heap
@@ -141,10 +153,10 @@ typedef void(*AudioRendererCleanup)(void);
 typedef void(*AudioRendererDecodeAndPlaySample)(char* sampleData, int sampleLength);
 
 typedef struct _AUDIO_RENDERER_CALLBACKS {
-	AudioRendererInit init;
-	AudioRendererCleanup cleanup;
-	AudioRendererDecodeAndPlaySample decodeAndPlaySample;
-	int capabilities;
+    AudioRendererInit init;
+    AudioRendererCleanup cleanup;
+    AudioRendererDecodeAndPlaySample decodeAndPlaySample;
+    int capabilities;
 } AUDIO_RENDERER_CALLBACKS, *PAUDIO_RENDERER_CALLBACKS;
 
 // Use this function to zero the audio callbacks when allocated on the stack or heap
@@ -183,20 +195,20 @@ typedef void(*ConnListenerConnectionStarted)(void);
 typedef void(*ConnListenerConnectionTerminated)(long errorCode);
 
 // This callback is invoked to display a dialog-type message to the user
-typedef void(*ConnListenerDisplayMessage)(char* message);
+typedef void(*ConnListenerDisplayMessage)(const char* message);
 
 // This callback is invoked to display a transient message for the user
 // while streaming
-typedef void(*ConnListenerDisplayTransientMessage)(char* message);
+typedef void(*ConnListenerDisplayTransientMessage)(const char* message);
 
 typedef struct _CONNECTION_LISTENER_CALLBACKS {
-	ConnListenerStageStarting stageStarting;
-	ConnListenerStageComplete stageComplete;
-	ConnListenerStageFailed stageFailed;
-	ConnListenerConnectionStarted connectionStarted;
-	ConnListenerConnectionTerminated connectionTerminated;
-	ConnListenerDisplayMessage displayMessage;
-	ConnListenerDisplayTransientMessage displayTransientMessage;
+    ConnListenerStageStarting stageStarting;
+    ConnListenerStageComplete stageComplete;
+    ConnListenerStageFailed stageFailed;
+    ConnListenerConnectionStarted connectionStarted;
+    ConnListenerConnectionTerminated connectionTerminated;
+    ConnListenerDisplayMessage displayMessage;
+    ConnListenerDisplayTransientMessage displayTransientMessage;
 } CONNECTION_LISTENER_CALLBACKS, *PCONNECTION_LISTENER_CALLBACKS;
 
 // Use this function to zero the connection callbacks when allocated on the stack or heap
@@ -210,7 +222,7 @@ void LiInitializeConnectionCallbacks(PCONNECTION_LISTENER_CALLBACKS clCallbacks)
 // _serverMajorVersion is the major version number of the 'appversion' tag in the /serverinfo request
 //
 int LiStartConnection(const char* host, PSTREAM_CONFIGURATION streamConfig, PCONNECTION_LISTENER_CALLBACKS clCallbacks,
-	PDECODER_RENDERER_CALLBACKS drCallbacks, PAUDIO_RENDERER_CALLBACKS arCallbacks, void* renderContext, int drFlags, int _serverMajorVersion);
+    PDECODER_RENDERER_CALLBACKS drCallbacks, PAUDIO_RENDERER_CALLBACKS arCallbacks, void* renderContext, int drFlags, int _serverMajorVersion);
 
 // This function stops streaming.
 void LiStopConnection(void);
@@ -258,7 +270,7 @@ int LiSendKeyboardEvent(short keyCode, char keyAction, char modifiers);
 // This function queues a controller event to be sent to the remote server. It will
 // be seen by the computer as the first controller.
 int LiSendControllerEvent(short buttonFlags, unsigned char leftTrigger, unsigned char rightTrigger,
-	short leftStickX, short leftStickY, short rightStickX, short rightStickY);
+    short leftStickX, short leftStickY, short rightStickX, short rightStickY);
 
 // This function queues a controller event to be sent to the remote server. The controllerNumber
 // parameter is a zero-based index of which controller this event corresponds to. The largest legal

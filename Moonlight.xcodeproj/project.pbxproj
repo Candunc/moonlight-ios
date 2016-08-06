@@ -86,6 +86,10 @@
 		0AC312EF1C0DD42E004FC165 /* SettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0AC312AC1C0DD42E004FC165 /* SettingsViewController.m */; };
 		0AC312F01C0DD42E004FC165 /* StreamFrameViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0AC312AE1C0DD42E004FC165 /* StreamFrameViewController.m */; };
 		0AC312F11C0DD42E004FC165 /* SWRevealViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 0AC312B01C0DD42E004FC165 /* SWRevealViewController.m */; };
+		2BF3492B1D5555BE001836E7 /* TemporaryHost.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BF349281D5555BE001836E7 /* TemporaryHost.m */; };
+		2BF3492C1D5555BE001836E7 /* TemporaryHost.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BF349281D5555BE001836E7 /* TemporaryHost.m */; };
+		2BF3492D1D5555BE001836E7 /* TemporarySettings.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BF3492A1D5555BE001836E7 /* TemporarySettings.m */; };
+		2BF3492E1D5555BE001836E7 /* TemporarySettings.m in Sources */ = {isa = PBXBuildFile; fileRef = 2BF3492A1D5555BE001836E7 /* TemporarySettings.m */; };
 		9832D1361BBCD5C50036EF48 /* TemporaryApp.m in Sources */ = {isa = PBXBuildFile; fileRef = 9832D1351BBCD5C50036EF48 /* TemporaryApp.m */; };
 		9E5D600B1A5A5A3900689918 /* Apache License.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9E5D5FF81A5A5A3900689918 /* Apache License.txt */; };
 		9E5D600C1A5A5A3900689918 /* Roboto-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9E5D5FF91A5A5A3900689918 /* Roboto-Black.ttf */; };
@@ -290,6 +294,10 @@
 		0AC312AE1C0DD42E004FC165 /* StreamFrameViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StreamFrameViewController.m; sourceTree = "<group>"; };
 		0AC312AF1C0DD42E004FC165 /* SWRevealViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SWRevealViewController.h; sourceTree = "<group>"; };
 		0AC312B01C0DD42E004FC165 /* SWRevealViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SWRevealViewController.m; sourceTree = "<group>"; };
+		2BF349271D5555BE001836E7 /* TemporaryHost.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TemporaryHost.h; path = Database/TemporaryHost.h; sourceTree = "<group>"; };
+		2BF349281D5555BE001836E7 /* TemporaryHost.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TemporaryHost.m; path = Database/TemporaryHost.m; sourceTree = "<group>"; };
+		2BF349291D5555BE001836E7 /* TemporarySettings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TemporarySettings.h; path = Database/TemporarySettings.h; sourceTree = "<group>"; };
+		2BF3492A1D5555BE001836E7 /* TemporarySettings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TemporarySettings.m; path = Database/TemporarySettings.m; sourceTree = "<group>"; };
 		9832D1341BBCD5C50036EF48 /* TemporaryApp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TemporaryApp.h; path = Database/TemporaryApp.h; sourceTree = "<group>"; };
 		9832D1351BBCD5C50036EF48 /* TemporaryApp.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = TemporaryApp.m; path = Database/TemporaryApp.m; sourceTree = "<group>"; };
 		9E5D5FF81A5A5A3900689918 /* Apache License.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = "Apache License.txt"; sourceTree = "<group>"; };
@@ -1154,6 +1162,10 @@
 				FBD349611A0089F6002D2A60 /* DataManager.m */,
 				9832D1341BBCD5C50036EF48 /* TemporaryApp.h */,
 				9832D1351BBCD5C50036EF48 /* TemporaryApp.m */,
+				2BF349271D5555BE001836E7 /* TemporaryHost.h */,
+				2BF349281D5555BE001836E7 /* TemporaryHost.m */,
+				2BF349291D5555BE001836E7 /* TemporarySettings.h */,
+				2BF3492A1D5555BE001836E7 /* TemporarySettings.m */,
 			);
 			name = Database;
 			sourceTree = "<group>";
@@ -1207,9 +1219,10 @@
 				TargetAttributes = {
 					0AC312241C0DD3D8004FC165 = {
 						CreatedOnToolsVersion = 7.1;
+						DevelopmentTeam = 7V89NHL866;
 					};
 					FB290CED19B2C406004C83CF = {
-						DevelopmentTeam = DM46QST4M7;
+						DevelopmentTeam = 7V89NHL866;
 					};
 				};
 			};
@@ -1313,11 +1326,13 @@
 				0AC312E81C0DD42E004FC165 /* VideoDecoderRenderer.m in Sources */,
 				0AC312EE1C0DD42E004FC165 /* MainFrameViewController.m in Sources */,
 				0AC312B71C0DD42E004FC165 /* App.m in Sources */,
+				2BF3492C1D5555BE001836E7 /* TemporaryHost.m in Sources */,
 				0AC312DA1C0DD42E004FC165 /* AppAssetRetriever.m in Sources */,
 				0AC312B91C0DD42E004FC165 /* Host.m in Sources */,
 				0AC312E21C0DD42E004FC165 /* PairManager.m in Sources */,
 				0AC312ED1C0DD42E004FC165 /* LoadingFrameViewController.m in Sources */,
 				0AC312B41C0DD42E004FC165 /* CryptoManager.m in Sources */,
+				2BF3492E1D5555BE001836E7 /* TemporarySettings.m in Sources */,
 				0AC312DD1C0DD42E004FC165 /* DiscoveryWorker.m in Sources */,
 				0AC312E91C0DD42E004FC165 /* UIAppView.m in Sources */,
 				0AC312B11C0DD42E004FC165 /* AppCollectionView.m in Sources */,
@@ -1363,11 +1378,13 @@
 				FB89462D19F646E200339C8A /* MDNSManager.m in Sources */,
 				FB89462B19F646E200339C8A /* StreamView.m in Sources */,
 				FB4678FA1A55FFAD00377732 /* DiscoveryManager.m in Sources */,
+				2BF3492B1D5555BE001836E7 /* TemporaryHost.m in Sources */,
 				FB89463519F646E200339C8A /* MainFrameViewController.m in Sources */,
 				FBD1C8E21A8AD71400C6703C /* Logger.m in Sources */,
 				FB1D599A1BBCCD7E00F482CA /* AppCollectionView.m in Sources */,
 				FB89463619F646E200339C8A /* StreamFrameViewController.m in Sources */,
 				9832D1361BBCD5C50036EF48 /* TemporaryApp.m in Sources */,
+				2BF3492D1D5555BE001836E7 /* TemporarySettings.m in Sources */,
 				FB89462819F646E200339C8A /* CryptoManager.m in Sources */,
 				FB89462E19F646E200339C8A /* PairManager.m in Sources */,
 				FB9AFD371A7E02DB00872C98 /* HttpRequest.m in Sources */,
@@ -1414,6 +1431,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "iPhone Developer";
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -1435,6 +1454,7 @@
 				MTL_ENABLE_DEBUG_INFO = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.smith.Moonlight-tvOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				SDKROOT = appletvos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				TARGETED_DEVICE_FAMILY = 3;
@@ -1448,6 +1468,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=appletvos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1470,6 +1492,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.smith.Moonlight-tvOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 9.0;
@@ -1574,7 +1597,7 @@
 					"$(PROJECT_DIR)/libs/opus/lib",
 					"$(PROJECT_DIR)/libs/openssl/lib",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.moonlight-stream.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = io.dodoapps.moonlight;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SKIP_INSTALL = NO;
@@ -1604,7 +1627,7 @@
 					"$(PROJECT_DIR)/libs/opus/lib",
 					"$(PROJECT_DIR)/libs/openssl/lib",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.moonlight-stream.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = io.dodoapps.moonlight;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
 				SKIP_INSTALL = NO;

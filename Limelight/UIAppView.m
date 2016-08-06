@@ -9,7 +9,7 @@
 #import "UIAppView.h"
 
 @implementation UIAppView {
-    App* _app;
+    TemporaryApp* _app;
     UIButton* _appButton;
     UILabel* _appLabel;
     UIImageView* _appOverlay;
@@ -19,11 +19,11 @@
 
 static UIImage* noImage;
 
--(App*) getApp {
+-(TemporaryApp*) getApp {
     return _app;
 }
 
-- (id) initWithApp:(App*)app cache:(NSCache*)cache andCallback:(id<AppCallback>)callback {
+- (id) initWithApp:(TemporaryApp*)app cache:(NSCache*)cache andCallback:(id<AppCallback>)callback {
     self = [super init];
     _app = app;
     _callback = callback;

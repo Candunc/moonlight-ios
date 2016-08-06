@@ -15,10 +15,9 @@
 #import "Utils.h"
 #import "UIComputerView.h"
 #import "UIAppView.h"
-#import "App.h"
 #import "SettingsViewController.h"
 #import "DataManager.h"
-#import "Settings.h"
+#import "TemporarySettings.h"
 #import "WakeOnLanManager.h"
 #import "AppListResponse.h"
 #import "ServerInfoResponse.h"
@@ -30,14 +29,14 @@
 
 @implementation MainFrameViewController {
     NSOperationQueue* _opQueue;
-    Host* _selectedHost;
+    TemporaryHost* _selectedHost;
     NSString* _uniqueId;
     NSData* _cert;
     DiscoveryManager* _discMan;
     AppAssetManager* _appManager;
     StreamConfiguration* _streamConfig;
     UIAlertController* _pairAlert;
-    ComputerScrollView* hostScrollView;
+    UIScrollView* hostScrollView;
     int currentPosition;
     NSArray* _sortedAppList;
     NSCache* _boxArtCache;
@@ -80,7 +79,7 @@ static NSMutableSet* hostList;
     
     // Capture the host here because it can change once we
     // leave the main thread
-    Host* host = _selectedHost;
+    TemporaryHost* host = _selectedHost;
     
     if ([host.appList count] > 0) {
         usingCachedAppList = true;
@@ -121,7 +120,7 @@ static NSMutableSet* hostList;
         }
         
         [_discMan addHostToDiscovery:host];
-
+        
         if (appListResp == nil || ![appListResp isStatusOk] || [appListResp getAppList] == nil) {
             Log(LOG_W, @"Failed to get applist: %@", appListResp.statusMessage);
             dispatch_async(dispatch_get_main_queue(), ^{
@@ -141,8 +140,8 @@ static NSMutableSet* hostList;
             });
         } else {
             dispatch_async(dispatch_get_main_queue(), ^{
-                [self mergeAppLists:[appListResp getAppList] forHost:host];
-
+                [self updateApplist:[appListResp getAppList] forHost:host];
+                
                 if (host != _selectedHost) {
                     return;
                 }
@@ -159,11 +158,12 @@ static NSMutableSet* hostList;
     });
 }
 
-- (void) mergeAppLists:(NSArray*) newList forHost:(Host*)host {
+- (void) updateApplist:(NSSet*) newList forHost:(TemporaryHost*)host {
     DataManager* database = [[DataManager alloc] init];
+    
     for (TemporaryApp* app in newList) {
-        BOOL appAlreadyInList = NO; 
-        for (App* savedApp in host.appList) {
+        BOOL appAlreadyInList = NO;
+        for (TemporaryApp* savedApp in host.appList) {
             if ([app.id isEqualToString:savedApp.id]) {
                 savedApp.name = app.name;
                 savedApp.isRunning = app.isRunning;
@@ -173,7 +173,7 @@ static NSMutableSet* hostList;
         }
         if (!appAlreadyInList) {
             app.host = host;
-            [database addAppFromTemporaryApp:app];
+            [host.appList addObject:app];
         }
     }
     
@@ -181,9 +181,9 @@ static NSMutableSet* hostList;
     do {
         appWasRemoved = NO;
         
-        for (App* app in host.appList) {
+        for (TemporaryApp* app in host.appList) {
             appWasRemoved = YES;
-            for (App* mergedApp in newList) {
+            for (TemporaryApp* mergedApp in newList) {
                 if ([mergedApp.id isEqualToString:app.id]) {
                     appWasRemoved = NO;
                     break;
@@ -192,30 +192,39 @@ static NSMutableSet* hostList;
             if (appWasRemoved) {
                 // Removing the app mutates the list we're iterating (which isn't legal).
                 // We need to jump out of this loop and restart enumeration.
-                [database removeAppFromHost:app];
+                
+                [host.appList removeObject:app];
+                
+                // It's important to remove the app record from the database
+                // since we'll have a constraint violation now that appList
+                // doesn't have this app in it.
+                [database removeApp:app];
+                
                 break;
             }
         }
         
         // Keep looping until the list is no longer being mutated
     } while (appWasRemoved);
-
-    [database saveData];
+    
+    [database updateAppsForExistingHost:host];
 }
 
 - (void)showHostSelectionView {
     [_appManager stopRetrieving];
-    [[[DataManager alloc] init] saveData];
     _selectedHost = nil;
     _computerNameButton.title = @"No Host Selected";
     [self.collectionView reloadData];
     [self.view addSubview:hostScrollView];
 }
 
-- (void) receivedAssetForApp:(App*)app {
+- (void) receivedAssetForApp:(TemporaryApp*)app {
     // Update the box art cache now so we don't have to do it
     // on the main thread
     [self updateBoxArtCacheForApp:app];
+    
+    DataManager* dataManager = [[DataManager alloc] init];
+    [dataManager updateIconForExistingApp: app];
     
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.collectionView reloadData];
@@ -230,7 +239,7 @@ static NSMutableSet* hostList;
     [self presentViewController:alert animated:YES completion:nil];
 }
 
-- (void) hostClicked:(Host *)host view:(UIView *)view {
+- (void) hostClicked:(TemporaryHost *)host view:(UIView *)view {
     // Treat clicks on offline hosts to be long clicks
     // This shows the context menu with wake, delete, etc. rather
     // than just hanging for a while and failing as we would in this
@@ -260,7 +269,7 @@ static NSMutableSet* hostList;
         // Exempt this host from discovery while handling the serverinfo request
         [_discMan removeHostFromDiscovery:host];
         [hMan executeRequestSynchronously:[HttpRequest requestForResponse:serverInfoResp withUrlRequest:[hMan newServerInfoRequest]
-                                           fallbackError:401 fallbackRequest:[hMan newHttpServerInfoRequest]]];
+                                                            fallbackError:401 fallbackRequest:[hMan newHttpServerInfoRequest]]];
         [_discMan addHostToDiscovery:host];
         
         if (serverInfoResp == nil || ![serverInfoResp isStatusOk]) {
@@ -296,7 +305,7 @@ static NSMutableSet* hostList;
     });
 }
 
-- (void)hostLongClicked:(Host *)host view:(UIView *)view {
+- (void)hostLongClicked:(TemporaryHost *)host view:(UIView *)view {
     Log(LOG_D, @"Long clicked host: %@", host.name);
     UIAlertController* longClickAlert = [UIAlertController alertControllerWithTitle:host.name message:@"" preferredStyle:UIAlertControllerStyleActionSheet];
     if (!host.online) {
@@ -322,8 +331,8 @@ static NSMutableSet* hostList;
         [dataMan removeHost:host];
         @synchronized(hostList) {
             [hostList removeObject:host];
+            [self updateAllHosts:[hostList allObjects]];
         }
-        [self updateAllHosts:[hostList allObjects]];
         
     }]];
     [longClickAlert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
@@ -345,10 +354,8 @@ static NSMutableSet* hostList;
     [alertController addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
         NSString* hostAddress = ((UITextField*)[[alertController textFields] objectAtIndex:0]).text;
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-            [_discMan discoverHost:hostAddress withCallback:^(Host* host, NSString* error){
+            [_discMan discoverHost:hostAddress withCallback:^(TemporaryHost* host, NSString* error){
                 if (host != nil) {
-                    DataManager* dataMan = [[DataManager alloc] init];
-                    [dataMan saveData];
                     dispatch_async(dispatch_get_main_queue(), ^{
                         @synchronized(hostList) {
                             [hostList addObject:host];
@@ -369,14 +376,14 @@ static NSMutableSet* hostList;
     [self presentViewController:alertController animated:YES completion:nil];
 }
 
-- (void) appClicked:(App *)app {
+- (void) appClicked:(TemporaryApp *)app {
     Log(LOG_D, @"Clicked app: %@", app.name);
     _streamConfig = [[StreamConfiguration alloc] init];
     _streamConfig.host = app.host.activeAddress;
     _streamConfig.appID = app.id;
     
     DataManager* dataMan = [[DataManager alloc] init];
-    Settings* streamSettings = [dataMan retrieveSettings];
+    TemporarySettings* streamSettings = [dataMan getSettings];
     
     _streamConfig.frameRate = [streamSettings.framerate intValue];
     _streamConfig.bitRate = [streamSettings.bitrate intValue];
@@ -389,7 +396,7 @@ static NSMutableSet* hostList;
         [[self revealViewController] revealToggle:self];
     }
     
-    App* currentApp = [self findRunningApp:app.host];
+    TemporaryApp* currentApp = [self findRunningApp:app.host];
     if (currentApp != nil) {
         UIAlertController* alertController = [UIAlertController
                                               alertControllerWithTitle: app.name
@@ -416,10 +423,10 @@ static NSMutableSet* hostList;
                                             
                                             // If it fails, display an error and stop the current operation
                                             if (quitResponse.statusCode != 200) {
-                                               alert = [UIAlertController alertControllerWithTitle:@"Quitting App Failed"
-                                                                                      message:@"Failed to quit app. If this app was started by "
-                                                        "another device, you'll need to quit from that device."
-                                                                               preferredStyle:UIAlertControllerStyleAlert];
+                                                alert = [UIAlertController alertControllerWithTitle:@"Quitting App Failed"
+                                                                                            message:@"Failed to quit app. If this app was started by "
+                                                         "another device, you'll need to quit from that device."
+                                                                                     preferredStyle:UIAlertControllerStyleAlert];
                                             }
                                             // If it succeeds and we're to start streaming, segue to the stream and return
                                             else if (![app.id isEqualToString:currentApp.id]) {
@@ -455,8 +462,8 @@ static NSMutableSet* hostList;
     }
 }
 
-- (App*) findRunningApp:(Host*)host {
-    for (App* app in host.appList) {
+- (TemporaryApp*) findRunningApp:(TemporaryHost*)host {
+    for (TemporaryApp* app in host.appList) {
         if (app.isRunning) {
             return app;
         }
@@ -513,7 +520,7 @@ static NSMutableSet* hostList;
     [CryptoManager generateKeyPairUsingSSl];
     _uniqueId = [IdManager getUniqueId];
     _cert = [CryptoManager readCertFromFile];
-
+    
     _appManager = [[AppAssetManager alloc] initWithCallback:self];
     _opQueue = [[NSOperationQueue alloc] init];
     
@@ -543,7 +550,11 @@ static NSMutableSet* hostList;
     
     self.collectionView.delaysContentTouches = NO;
     self.collectionView.allowsMultipleSelection = NO;
-    //self.collectionView.multipleTouchEnabled = NO;
+    
+#ifdef TARGET_OS_TV
+#else
+    self.collectionView.multipleTouchEnabled = NO;
+#endif
     
     [self retrieveSavedHosts];
     _discMan = [[DiscoveryManager alloc] initWithHosts:[hostList allObjects] andCallback:self];
@@ -593,19 +604,16 @@ static NSMutableSet* hostList;
     
     // Purge the box art cache
     [_boxArtCache removeAllObjects];
-    
-    // In case the host objects were updated in the background
-    [[[DataManager alloc] init] saveData];
 }
 
 - (void) retrieveSavedHosts {
     DataManager* dataMan = [[DataManager alloc] init];
-    NSArray* hosts = [dataMan retrieveHosts];
+    NSArray* hosts = [dataMan getHosts];
     @synchronized(hostList) {
         [hostList addObjectsFromArray:hosts];
         
         // Initialize the non-persistent host state
-        for (Host* host in hostList) {
+        for (TemporaryHost* host in hostList) {
             if (host.activeAddress == nil) {
                 host.activeAddress = host.localAddress;
             }
@@ -622,7 +630,7 @@ static NSMutableSet* hostList;
 - (void) updateAllHosts:(NSArray *)hosts {
     dispatch_async(dispatch_get_main_queue(), ^{
         Log(LOG_D, @"New host list:");
-        for (Host* host in hosts) {
+        for (TemporaryHost* host in hosts) {
             Log(LOG_D, @"Host: \n{\n\t name:%@ \n\t address:%@ \n\t localAddress:%@ \n\t externalAddress:%@ \n\t uuid:%@ \n\t mac:%@ \n\t pairState:%d \n\t online:%d \n\t activeAddress:%@ \n}", host.name, host.address, host.localAddress, host.externalAddress, host.uuid, host.mac, host.pairState, host.online, host.activeAddress);
         }
         @synchronized(hostList) {
@@ -654,7 +662,7 @@ static NSMutableSet* hostList;
     @synchronized (hostList) {
         // Sort the host list in alphabetical order
         NSArray* sortedHostList = [[hostList allObjects] sortedArrayUsingSelector:@selector(compareName:)];
-        for (Host* comp in sortedHostList) {
+        for (TemporaryHost* comp in sortedHostList) {
             compView = [[UIComputerView alloc] initWithComputer:comp andCallback:self];
             compView.center = CGPointMake([self getCompViewX:compView addComp:addComp prevEdge:prevEdge], hostScrollView.frame.size.height / 2);
             prevEdge = compView.frame.origin.x + compView.frame.size.width;
@@ -679,7 +687,7 @@ static NSMutableSet* hostList;
 
 // This function forces immediate decoding of the UIImage, rather
 // than the default lazy decoding that results in janky scrolling.
-+ (UIImage*) loadBoxArtForCaching:(App*)app {
++ (UIImage*) loadBoxArtForCaching:(TemporaryApp*)app {
     
     CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef)app.image, NULL);
     CGImageRef cgImage = CGImageSourceCreateImageAtIndex(source, 0, (__bridge CFDictionaryRef)@{(id)kCGImageSourceShouldCacheImmediately: (id)kCFBooleanTrue});
@@ -692,7 +700,7 @@ static NSMutableSet* hostList;
     return boxArt;
 }
 
-- (void) updateBoxArtCacheForApp:(App*)app {
+- (void) updateBoxArtCacheForApp:(TemporaryApp*)app {
     if (app.image == nil) {
         [_boxArtCache removeObjectForKey:app];
     }
@@ -701,7 +709,7 @@ static NSMutableSet* hostList;
     }
 }
 
-- (void) updateAppsForHost:(Host*)host {
+- (void) updateAppsForHost:(TemporaryHost*)host {
     if (host != _selectedHost) {
         Log(LOG_W, @"Mismatched host during app update");
         return;
@@ -727,12 +735,12 @@ static NSMutableSet* hostList;
     
     // Start 2 jobs
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        for (App* app in firstHalf) {
+        for (TemporaryApp* app in firstHalf) {
             [self updateBoxArtCacheForApp:app];
         }
     });
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        for (App* app in secondHalf) {
+        for (TemporaryApp* app in secondHalf) {
             [self updateBoxArtCacheForApp:app];
         }
     });
@@ -744,7 +752,7 @@ static NSMutableSet* hostList;
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     UICollectionViewCell* cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"AppCell" forIndexPath:indexPath];
     
-    App* app = _sortedAppList[indexPath.row];
+    TemporaryApp* app = _sortedAppList[indexPath.row];
     UIAppView* appView = [[UIAppView alloc] initWithApp:app cache:_boxArtCache andCallback:self];
     [appView updateAppImage];
     
@@ -753,10 +761,11 @@ static NSMutableSet* hostList;
         [appView setCenter:CGPointMake(appView.bounds.size.width / 2 * scale, appView.bounds.size.height / 2 * scale)];
         appView.transform = CGAffineTransformMakeScale(scale, scale);
     }
-  
+    
     [cell.subviews.firstObject removeFromSuperview]; // Remove a view that was previously added
     [cell addSubview:appView];
-
+    
+    
     UIBezierPath *shadowPath = [UIBezierPath bezierPathWithRect:cell.bounds];
     cell.layer.masksToBounds = NO;
     cell.layer.shadowColor = [UIColor blackColor].CGColor;
@@ -766,10 +775,11 @@ static NSMutableSet* hostList;
     
     cell.layer.borderColor = [[UIColor colorWithRed:0 green:0 blue:0 alpha:0.3f] CGColor];
     cell.layer.borderWidth = 1;
-    //cell.exclusiveTouch = YES;
-  
-    //imageView.userInteractionEnabled = YES;
     
+#ifdef TARGET_OS_TV
+#else
+    cell.exclusiveTouch = YES;
+#endif
     return cell;
 }
 

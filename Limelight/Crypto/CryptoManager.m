@@ -16,19 +16,31 @@
 #include <openssl/evp.h>
 
 @implementation CryptoManager
-static const int SHA1_DIGEST_LENGTH = 20;
+static const int SHA1_HASH_LENGTH = 20;
+static const int SHA256_HASH_LENGTH = 32;
 static NSData* key = nil;
 static NSData* cert = nil;
 static NSData* p12 = nil;
 
-- (NSData*) createAESKeyFromSalt:(NSData*)saltedPIN {
+- (NSData*) createAESKeyFromSaltSHA1:(NSData*)saltedPIN {
     return [[self SHA1HashData:saltedPIN] subdataWithRange:NSMakeRange(0, 16)];
 }
 
+- (NSData*) createAESKeyFromSaltSHA256:(NSData*)saltedPIN {
+    return [[self SHA256HashData:saltedPIN] subdataWithRange:NSMakeRange(0, 16)];
+}
+
 - (NSData*) SHA1HashData:(NSData*)data {
-    unsigned char sha1[SHA1_DIGEST_LENGTH];
+    unsigned char sha1[SHA1_HASH_LENGTH];
     SHA1([data bytes], [data length], sha1);
-    NSData* bytes = [NSData dataWithBytes:sha1 length:20];
+    NSData* bytes = [NSData dataWithBytes:sha1 length:sizeof(sha1)];
+    return bytes;
+}
+
+- (NSData*) SHA256HashData:(NSData*)data {
+    unsigned char sha256[SHA256_HASH_LENGTH];
+    SHA256([data bytes], [data length], sha256);
+    NSData* bytes = [NSData dataWithBytes:sha256 length:sizeof(sha256)];
     return bytes;
 }
 
@@ -150,9 +162,7 @@ static NSData* p12 = nil;
 // TODO: these three methods are almost identical, fix the copy-pasta
 + (NSData*) readCertFromFile {
     if (cert == nil) {
-        //NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-        
         NSString *documentsDirectory = [paths objectAtIndex:0];
         NSString *certFile = [documentsDirectory stringByAppendingPathComponent:@"client.crt"];
         cert = [NSData dataWithContentsOfFile:certFile];
@@ -162,9 +172,7 @@ static NSData* p12 = nil;
 
 + (NSData*) readP12FromFile {
     if (p12 == nil) {
-        //NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-        
         NSString *documentsDirectory = [paths objectAtIndex:0];
         NSString *p12File = [documentsDirectory stringByAppendingPathComponent:@"client.p12"];
         p12 = [NSData dataWithContentsOfFile:p12File];
@@ -174,7 +182,6 @@ static NSData* p12 = nil;
 
 + (NSData*) readKeyFromFile {
     if (key == nil) {
-        //NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
         NSString *documentsDirectory = [paths objectAtIndex:0];
         NSString *keyFile = [documentsDirectory stringByAppendingPathComponent:@"client.key"];
@@ -184,7 +191,6 @@ static NSData* p12 = nil;
 }
 
 + (bool) keyPairExists {
-    //NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths objectAtIndex:0];
     NSString *keyFile = [documentsDirectory stringByAppendingPathComponent:@"client.key"];
@@ -220,14 +226,13 @@ static NSData* p12 = nil;
             Log(LOG_I, @"Generating Certificate... ");
             CertKeyPair certKeyPair = generateCertKeyPair();
             
-            //NSArray* paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
             NSArray* paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
             NSString* documentsDirectory = [paths objectAtIndex:0];
             NSString* certFile = [documentsDirectory stringByAppendingPathComponent:@"client.crt"];
             NSString* keyPairFile = [documentsDirectory stringByAppendingPathComponent:@"client.key"];
             NSString* p12File = [documentsDirectory stringByAppendingPathComponent:@"client.p12"];
             
-            Log(LOG_D, @"Writing cert and key to: \n%@\n%@", certFile, keyPairFile);
+            //Log(LOG_D, @"Writing cert and key to: \n%@\n%@", certFile, keyPairFile);
             saveCertKeyPair([certFile UTF8String], [p12File UTF8String], [keyPairFile UTF8String], certKeyPair);
             freeCertKeyPair(certKeyPair);
             Log(LOG_I, @"Certificate created");

@@ -17,6 +17,9 @@
     BOOL touchMoved;
     OnScreenControls* onScreenControls;
     
+    BOOL isDragging;
+    NSTimer* dragTimer;
+    
     float xDeltaFactor;
     float yDeltaFactor;
     float screenFactor;
@@ -32,7 +35,7 @@
 - (void) setupOnScreenControls:(ControllerSupport*)controllerSupport swipeDelegate:(id<EdgeDetectionDelegate>)swipeDelegate {
     onScreenControls = [[OnScreenControls alloc] initWithView:self controllerSup:controllerSupport swipeDelegate:swipeDelegate];
     DataManager* dataMan = [[DataManager alloc] init];
-    OnScreenControlsLevel level = (OnScreenControlsLevel)[[dataMan retrieveSettings].onscreenControls integerValue];
+    OnScreenControlsLevel level = (OnScreenControlsLevel)[[dataMan getSettings].onscreenControls integerValue];
     
     if (level == OnScreenControlsLevelAuto) {
         [controllerSupport initAutoOnScreenControlMode:onScreenControls];
@@ -41,7 +44,6 @@
         Log(LOG_I, @"Setting manual on-screen controls level: %d", (int)level);
         [onScreenControls setLevel:level];
     }
-    //[self.view addGe
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
@@ -50,23 +52,27 @@
         UITouch *touch = [[event allTouches] anyObject];
         touchLocation = [touch locationInView:self];
         touchMoved = false;
+        if ([[event allTouches] count] == 1 && !isDragging) {
+            dragTimer = [NSTimer scheduledTimerWithTimeInterval:0.650
+                                                     target:self
+                                                   selector:@selector(onDragStart:)
+                                                   userInfo:nil
+                                                    repeats:NO];
+        }
     }
 }
 
-/*
--(void) pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
-    for (UIPress *item in presses) {
-        if (item.type== UIPressTypePlayPause) {
-            Log(LOG_D, @"Play pause");
-            return;
-        }
+- (void)onDragStart:(NSTimer*)timer {
+    if (!touchMoved && !isDragging){
+        isDragging = true;
+        LiSendMouseButtonEvent(BUTTON_ACTION_PRESS, BUTTON_LEFT);
     }
-    
 }
- */
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
     if (![onScreenControls handleTouchMovedEvent:touches]) {
+        [dragTimer invalidate];
+        dragTimer = nil;
         if ([[event allTouches] count] == 1) {
             UITouch *touch = [[event allTouches] anyObject];
             CGPoint currentLocation = [touch locationInView:self];
@@ -104,6 +110,8 @@
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
     Log(LOG_D, @"Touch up");
     if (![onScreenControls handleTouchUpEvent:touches]) {
+        [dragTimer invalidate];
+        dragTimer = nil;
         if (!touchMoved) {
             if ([[event allTouches] count]  == 2) {
                 Log(LOG_D, @"Sending right mouse button press");
@@ -114,18 +122,22 @@
                 usleep(100 * 1000);
                 
                 LiSendMouseButtonEvent(BUTTON_ACTION_RELEASE, BUTTON_RIGHT);
-                
-                
             } else {
-                Log(LOG_D, @"Sending left mouse button press");
-                
-                LiSendMouseButtonEvent(BUTTON_ACTION_PRESS, BUTTON_LEFT);
-                
-                // Wait 100 ms to simulate a real button press
-                usleep(100 * 1000);
-                
+                if (!isDragging){
+                    Log(LOG_D, @"Sending left mouse button press");
+                    
+                    LiSendMouseButtonEvent(BUTTON_ACTION_PRESS, BUTTON_LEFT);
+                    
+                    // Wait 100 ms to simulate a real button press
+                    usleep(100 * 1000);
+                }
+                isDragging = false;
                 LiSendMouseButtonEvent(BUTTON_ACTION_RELEASE, BUTTON_LEFT);
             }
+        }
+        else if (isDragging) {
+            isDragging = false;
+            LiSendMouseButtonEvent(BUTTON_ACTION_RELEASE, BUTTON_LEFT);
         }
     }
 }

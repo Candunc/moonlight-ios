@@ -14,12 +14,12 @@
 
 - (void) connectionStarted;
 - (void) connectionTerminated:(long)errorCode;
-- (void) stageStarting:(char*)stageName;
-- (void) stageComplete:(char*)stageName;
-- (void) stageFailed:(char*)stageName withError:(long)errorCode;
+- (void) stageStarting:(const char*)stageName;
+- (void) stageComplete:(const char*)stageName;
+- (void) stageFailed:(const char*)stageName withError:(long)errorCode;
 - (void) launchFailed:(NSString*)message;
-- (void) displayMessage:(char*)message;
-- (void) displayTransientMessage:(char*)message;
+- (void) displayMessage:(const char*)message;
+- (void) displayTransientMessage:(const char*)message;
 
 @end
 
@@ -27,7 +27,6 @@
 
 -(id) initWithConfig:(StreamConfiguration*)config renderer:(VideoDecoderRenderer*)myRenderer connectionCallbacks:(id<ConnectionCallbacks>)callbacks serverMajorVersion:(int)serverMajorVersion;
 -(void) terminate;
--(void) terminateInternal;
 -(void) main;
 
 @end

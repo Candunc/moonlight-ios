@@ -9,12 +9,15 @@
 #define SetLastSocketError(x) WSASetLastError(x)
 #define LastSocketError() WSAGetLastError()
 
+#define SHUT_RDWR SD_BOTH
+
 typedef int SOCK_RET;
 typedef int SOCKADDR_LEN;
 
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/tcp.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -22,11 +25,11 @@ typedef int SOCKADDR_LEN;
 #include <errno.h>
 #include <signal.h>
 
+#define ioctlsocket ioctl
 #define LastSocketError() errno
 #define SetLastSocketError(x) errno = x
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
-#define closesocket(x) close(x)
 
 typedef int SOCKET;
 typedef ssize_t SOCK_RET;
@@ -36,9 +39,13 @@ typedef socklen_t SOCKADDR_LEN;
 #define LastSocketFail() ((LastSocketError() != 0) ? LastSocketError() : -1)
 
 // IPv6 addresses have 2 extra characters for URL escaping
-#define URLSAFESTRING_LEN INET6_ADDRSTRLEN+2
-void addrToUrlSafeString(struct sockaddr_storage *addr, char* string);
+#define URLSAFESTRING_LEN (INET6_ADDRSTRLEN+2)
+void addrToUrlSafeString(struct sockaddr_storage* addr, char* string);
 
-SOCKET connectTcpSocket(struct sockaddr_storage *dstaddr, SOCKADDR_LEN addrlen, unsigned short port);
+SOCKET connectTcpSocket(struct sockaddr_storage* dstaddr, SOCKADDR_LEN addrlen, unsigned short port, int timeoutSec);
 SOCKET bindUdpSocket(int addrfamily, int bufferSize);
 int enableNoDelay(SOCKET s);
+int recvUdpSocket(SOCKET s, char* buffer, int size);
+void shutdownTcpSocket(SOCKET s);
+void setRecvTimeout(SOCKET s, int timeoutSec);
+void closeSocket(SOCKET s);

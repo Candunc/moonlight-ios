@@ -13,7 +13,9 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #endif
 
 #ifdef _WIN32
@@ -38,19 +40,21 @@ void LimelogWindows(char* Format, ...);
 #endif
 
 #if defined(LC_WINDOWS)
- #include <crtdbg.h>
- #ifdef LC_DEBUG
-  #define LC_ASSERT(x) __analysis_assume(x); \
+#include <crtdbg.h>
+#ifdef LC_DEBUG
+#define LC_ASSERT(x) __analysis_assume(x); \
                        _ASSERTE(x)
- #else
-  #define LC_ASSERT(x)
- #endif
 #else
- #ifndef LC_DEBUG
-  #define NDEBUG
- #endif
- #include <assert.h>
- #define LC_ASSERT(x) assert(x)
+#define LC_ASSERT(x)
+#endif
+#else
+#ifndef LC_DEBUG
+#ifndef NDEBUG
+#define NDEBUG
+#endif
+#endif
+#include <assert.h>
+#define LC_ASSERT(x) assert(x)
 #endif
 
 int initializePlatform(void);
