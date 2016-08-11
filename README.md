@@ -6,7 +6,9 @@ your powerful desktop computer to your iOS Device.
 
 There are also versions for [Android](https://github.com/moonlight-stream/moonlight-android) and [PC](https://github.com/moonlight-stream/moonlight-pc). 
 
-This is a quick and VERY dirty port of the code to get it up and running on the AppleTV.
+This is a quick and VERY dirty port of the code to get it up and running on the Apple TV 4.
+
+You can find out more on my website at <a href="https://bendodson.com/weblog/2016/08/11/moonlight-tvos/">https://bendodson.com/weblog/2016/08/11/moonlight-tvos/</a>.
 
 <h1>Demos</h1>
 
