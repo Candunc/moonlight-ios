@@ -412,7 +412,7 @@ static OSStatus playbackCallback(void *inRefCon,
                       &_clCallbacks,
                       &_drCallbacks,
                       &_arCallbacks,
-                      NULL, 0, _serverMajorVersion);
+                      NULL, 0, NULL, _serverMajorVersion);
     [initLock unlock];
 }
 
